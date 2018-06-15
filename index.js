@@ -39,26 +39,44 @@ async function run() {
   const LIST_EMAIL_SELECTOR = '#user_search_results > div.user-list > div:nth-child(INDEX) > div.d-flex > div > ul > li:nth-child(2) > a';
 
   const LENGTH_SELECTOR_CLASS = 'user-list-item';
+  const numPages = await getNumPages(page);
 
-  let listLength = await page.evaluate((sel) => {
-    return document.getElementsByClassName(sel).length;
-  }, LENGTH_SELECTOR_CLASS);
+  console.log('Numpages: ', numPages);
+
+  for( let h = 1; h <= numPages; h++){
+    let pageUrl = searchUrl + '&p=' + h;
+    await page.goto(pageUrl);
 
 
-  for( let i = 1; i<= listLength; i++ ){
-    // change the index to the next child
-    let usernameSelector = await page.evaluate((sel) => {
-      let element = document.querySelector(sel);
-      return element? element.innerHTML: null;
-    }, emailSelector);
+    let listLength = await page.evaluate((sel) => {
+      return document.getElementsByClassName(sel).length;
+    }, LENGTH_SELECTOR_CLASS);
 
-    // not all users have emails visible
-    if( !email )
-    continue;
+    for( let i = 1; i<= listLength; i++ ){
+      // change the index to the next child
+      // let usernameSelector = await page.evaluate((sel) => {
+      //   let element = document.querySelector(sel);
+      //   return element? element.innerHTML: null;
+      // }, emailSelector);
+      let usernameSelector = LIST_USERNAME_SELECTOR.replace("INDEX", i);
+      let emailSelector = LIST_EMAIL_SELECTOR.replace("INDEX", i);
 
-    console.log(username, ' -> ', email);
+      let username = await page.evaluate((sel) => {
+        return document.querySelector(sel).getAttribute('href').replace('/', '');
+      }, usernameSelector);
 
-    // TODO save this user
+      let email = await page.evaluate((sel) => {
+        let element = document.querySelector(sel);
+        return element? element.innerHTML: null;
+      }, emailSelector);
+
+      // not all users have emails visible
+      if( !email )
+        continue;
+
+      console.log(username, ' -> ', email);
+
+      // TODO save this user
 
   }
 
