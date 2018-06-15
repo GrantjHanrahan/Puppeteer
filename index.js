@@ -62,6 +62,29 @@ async function run() {
 
   }
 
+  async function getNumPages(page){
+    const NUM_USER_SELECTOR = '#js-pjax-container > div.container > div > div.column.three-fourths.codesearch-results.pr-6 > div.d-flex.flex-justify-between.border-bottom.pb-3 > h3';
+
+    let inner = await.page.evaluate((sel) => {
+      let html = document.querySelector(sel).innerHTML;
+
+      // format is: "69, 803 users"
+      return html.replace(',', '').replace('users', '').trim();
+    }, NUM_USER_SELECTOR);
+
+    let numUsers = parseInt(inner);
+
+    console.log('numUsers: ', numUsers);
+
+    /*
+    * Github shows 10 results per page, so
+    */
+
+    let numPages = Math.ceil(numUsers / 10);
+    return numPages;
+
+  }
+
 
   browser.close();
 }
