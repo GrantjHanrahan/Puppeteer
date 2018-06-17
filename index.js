@@ -1,6 +1,10 @@
 const puppeteer = require('puppeteer');
 const CREDS = require('./creds');
 
+const mongoose = require('mongoose');
+const User = require('./models/user');
+
+
 async function run() {
   const browser = await puppeteer.launch({
     headless: false
@@ -75,15 +79,23 @@ async function run() {
         continue;
 
       console.log(username, ' -> ', email);
-
       // TODO save this user
 
+      upsertUser({
+        username: username,
+        email: email,
+        dateCrawled: new Date()
+      });
+    }
+  }
+
+    browser.close();
   }
 
   async function getNumPages(page){
     const NUM_USER_SELECTOR = '#js-pjax-container > div.container > div > div.column.three-fourths.codesearch-results.pr-6 > div.d-flex.flex-justify-between.border-bottom.pb-3 > h3';
 
-    let inner = await.page.evaluate((sel) => {
+    let inner = await page.evaluate((sel) => {
       let html = document.querySelector(sel).innerHTML;
 
       // format is: "69, 803 users"
@@ -98,13 +110,27 @@ async function run() {
     * Github shows 10 results per page, so
     */
 
-    let numPages = Math.ceil(numUsers / 10);
-    return numPages;
-
+    return Math.ceil(numUsers / 10);
   }
 
+  function upsertUser(userObj){
+    const DB_URL = 'mongodb://localhost/puppeteer';
 
-  browser.close();
+    if( mongoose.connection.readyState == 0){
+      mongoose.connect(DB_URL);
+    }
+
+    // if this email exists, update the entry, don't insert
+    let conditions = { email: userObj.email };
+    let options = { upsert: true, new: true, setDefaultsOnInsert: true };
+
+    User.findOneAndUpdate(conditions, userObj, options, (err, result) => {
+      if (err) {
+      throw err;
+    }
+  });
 }
+
+
 
 run();
